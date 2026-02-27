@@ -1,0 +1,33 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:*",
+        "workspaces:*",
+        "ds:*",
+        "lambda:*",
+        "apigateway:*",
+        "events:*",
+        "cloudwatch:*",
+        "sns:*",
+        "logs:*",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRole",
+        "iam:PassRole",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
