@@ -47,4 +47,4 @@ resource "aws_workspaces_directory" "main" {
 output "directory_id"      { value = aws_directory_service_directory.simple_ad.id }
 output "registration_code" { value = aws_workspaces_directory.main.registration_code }
 output "dns_ips"           { value = aws_directory_service_directory.simple_ad.dns_ip_addresses }
-output "directory_sg_id"   { value = tolist(aws_directory_service_directory.simple_ad.security_group_id)[0] }
+output "directory_sg_id"   { value = aws_directory_service_directory.simple_ad.security_group_id }

@@ -1,11 +1,6 @@
-"""
-User Provisioner — Creates student01..N in Simple AD via LDAP.
-Invoke manually after directory is ready.
-"""
-import subprocess
 import os
 import json
-
+import ldap3
 
 def lambda_handler(event, context):
     directory_name = os.environ["DIRECTORY_NAME"]
@@ -13,51 +8,49 @@ def lambda_handler(event, context):
     password = os.environ["STUDENT_PWD"]
     dns_ips = os.environ["DNS_IPS"].split(",")
 
-    # Build base DN from directory name (sap-lab.local → dc=sap-lab,dc=local)
+    # Build base DN: sap-lab.local → dc=sap-lab,dc=local
     base_dn = ",".join([f"dc={p}" for p in directory_name.split(".")])
-    ldap_uri = f"ldap://{dns_ips[0]}"
+    admin_dn = f"Administrator@{directory_name}"
+    admin_pwd = os.environ.get("ADMIN_PWD", password)
+
+    server = ldap3.Server(dns_ips[0], port=389, use_ssl=False)
+    conn = ldap3.Connection(server, user=admin_dn, password=admin_pwd, auto_bind=True)
 
     created = []
     errors = []
 
     for i in range(1, student_count + 1):
         username = f"student{i:02d}"
-        dn = f"cn={username},cn=Users,{base_dn}"
+        user_dn = f"cn={username},cn=Users,{base_dn}"
 
-        ldif = f"""dn: {dn}
-objectClass: top
-objectClass: person
-objectClass: organizationalPerson
-objectClass: user
-cn: {username}
-sAMAccountName: {username}
-userPrincipalName: {username}@{directory_name}
-givenName: Student
-sn: {i:02d}
-displayName: Student {i:02d}
-userAccountControl: 512
-unicodePwd: {encode_password(password)}
-"""
+        attrs = {
+            "objectClass": ["top", "person", "organizationalPerson", "user"],
+            "sAMAccountName": username,
+            "userPrincipalName": f"{username}@{directory_name}",
+            "givenName": "Student",
+            "sn": f"{i:02d}",
+            "displayName": f"Student {i:02d}",
+            "userAccountControl": "544",
+        }
+
         try:
-            # Use ldapadd to create user
-            result = subprocess.run(
-                ["ldapadd", "-x", "-H", ldap_uri,
-                 "-D", f"Administrator@{directory_name}",
-                 "-w", os.environ.get("ADMIN_PWD", password)],
-                input=ldif, capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
+            result = conn.add(user_dn, attributes=attrs)
+            if result:
+                # Set password
+                encoded_pwd = f'"{password}"'.encode("utf-16-le")
+                conn.modify(user_dn, {"unicodePwd": [(ldap3.MODIFY_REPLACE, [encoded_pwd])]})
+                # Enable account
+                conn.modify(user_dn, {"userAccountControl": [(ldap3.MODIFY_REPLACE, ["512"])]})
                 created.append(username)
-            elif "Already exists" in result.stderr:
+            elif "entryAlreadyExists" in str(conn.result):
                 created.append(f"{username} (exists)")
             else:
-                errors.append(f"{username}: {result.stderr}")
+                errors.append(f"{username}: {conn.result}")
         except Exception as e:
-            errors.append(f"{username}: {str(e)}")
+            if "entryAlreadyExists" in str(e):
+                created.append(f"{username} (exists)")
+            else:
+                errors.append(f"{username}: {str(e)}")
 
-    return {"created": len(created), "errors": errors}
-
-
-def encode_password(password):
-    """Encode password for AD unicodePwd attribute."""
-    return '"{}"'.format(password).encode("utf-16-le").hex()
+    conn.unbind()
+    return {"created": len(created), "users": created, "errors": errors}

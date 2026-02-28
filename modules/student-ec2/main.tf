@@ -14,7 +14,7 @@ variable "environment"            { type = string }
 resource "aws_security_group" "student_sap" {
   name_prefix = "${var.project_name}-student-sap-"
   vpc_id      = var.vpc_id
-  description = "Student SAP servers — SSH, SAP GUI, HANA from WorkSpaces"
+  description = "Student SAP servers - SSH, SAP GUI, HANA from WorkSpaces"
 
   dynamic "ingress" {
     for_each = var.workspace_subnet_cidrs

@@ -10,7 +10,7 @@ variable "environment"       { type = string }
 resource "aws_security_group" "nfs_gw" {
   name_prefix = "${var.project_name}-nfs-gw-"
   vpc_id      = var.vpc_id
-  description = "NFS Gateway — NFS + SSH"
+  description = "NFS Gateway - NFS and SSH"
 
   ingress {
     from_port   = 2049

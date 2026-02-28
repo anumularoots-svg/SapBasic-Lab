@@ -1,7 +1,3 @@
-"""
-Self-Service Lambda — Students start/stop/check their EC2 from WorkSpace.
-API: GET /?action=start|stop|status&student=student01
-"""
 import boto3
 import json
 import os
@@ -16,12 +12,12 @@ def lambda_handler(event, context):
     student = params.get("student", "")
 
     if not student:
-        return response(400, {"error": "Missing 'student' parameter. Example: ?student=student01&action=start"})
+        return response(400, {"error": "Missing 'student' parameter"})
 
-    # Find EC2 by StudentId tag
     resp = ec2.describe_instances(Filters=[
         {"Name": "tag:StudentId", "Values": [student]},
         {"Name": "tag:Project", "Values": [PROJECT]},
+        {"Name": "instance-state-name", "Values": ["running", "stopped", "pending", "stopping"]},
     ])
 
     instances = [i for r in resp["Reservations"] for i in r["Instances"]]
@@ -36,10 +32,7 @@ def lambda_handler(event, context):
     if action == "start":
         if state == "stopped":
             ec2.start_instances(InstanceIds=[inst_id])
-            return response(200, {
-                "message": f"Starting server for {student}. Wait 2-3 minutes.",
-                "ip": ip, "state": "starting"
-            })
+            return response(200, {"message": f"Starting server for {student}. Wait 2-3 minutes.", "ip": ip, "state": "starting"})
         return response(200, {"message": f"Server already {state}", "ip": ip, "state": state})
 
     elif action == "stop":
@@ -48,13 +41,9 @@ def lambda_handler(event, context):
             return response(200, {"message": f"Stopping server for {student}.", "state": "stopping"})
         return response(200, {"message": f"Server already {state}", "state": state})
 
-    else:  # status
+    else:
         return response(200, {"student": student, "state": state, "ip": ip, "instance_id": inst_id})
 
 
 def response(code, body):
-    return {
-        "statusCode": code,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(body),
-    }
+    return {"statusCode": code, "headers": {"Content-Type": "application/json"}, "body": json.dumps(body)}

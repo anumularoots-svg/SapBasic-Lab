@@ -16,7 +16,7 @@ resource "aws_workspaces_workspace" "student" {
     user_volume_size_gib                      = 50
     root_volume_size_gib                      = 80
     running_mode                              = "AUTO_STOP"
-    running_mode_auto_stop_timeout_in_minutes = 10
+    running_mode_auto_stop_timeout_in_minutes = 60
   }
 
   tags = {
