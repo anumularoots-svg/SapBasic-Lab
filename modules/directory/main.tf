@@ -1,9 +1,13 @@
 variable "project_name"       { type = string }
 variable "directory_name"     { type = string }
-variable "admin_password"     { type = string; sensitive = true }
 variable "vpc_id"             { type = string }
 variable "private_subnet_ids" { type = list(string) }
 variable "environment"        { type = string }
+
+variable "admin_password" {
+  type      = string
+  sensitive = true
+}
 
 resource "aws_directory_service_directory" "simple_ad" {
   name     = var.directory_name
@@ -23,11 +27,11 @@ resource "aws_workspaces_directory" "main" {
   directory_id = aws_directory_service_directory.simple_ad.id
 
   self_service_permissions {
-    restart_workspace                = true
-    increase_volume_size             = false
-    change_compute_type              = false
-    switch_running_mode              = false
-    rebuild_workspace                = false
+    restart_workspace    = true
+    increase_volume_size = false
+    change_compute_type  = false
+    switch_running_mode  = false
+    rebuild_workspace    = false
   }
 
   workspace_access_properties {

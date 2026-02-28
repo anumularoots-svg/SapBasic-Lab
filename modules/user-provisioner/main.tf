@@ -1,6 +1,5 @@
 variable "project_name"       { type = string }
 variable "student_count"      { type = number }
-variable "student_password"   { type = string; sensitive = true }
 variable "directory_id"       { type = string }
 variable "directory_name"     { type = string }
 variable "vpc_id"             { type = string }
@@ -8,12 +7,20 @@ variable "private_subnet_ids" { type = list(string) }
 variable "directory_dns_ips"  { type = list(string) }
 variable "environment"        { type = string }
 
+variable "student_password" {
+  type      = string
+  sensitive = true
+}
+
 resource "aws_iam_role" "provisioner" {
   name = "${var.project_name}-user-provisioner-role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{ Action = "sts:AssumeRole", Effect = "Allow",
-      Principal = { Service = "lambda.amazonaws.com" } }]
+    Statement = [{
+      Action    = "sts:AssumeRole"
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+    }]
   })
 }
 
@@ -24,8 +31,8 @@ resource "aws_iam_role_policy" "provisioner" {
     Version = "2012-10-17"
     Statement = [
       { Effect = "Allow", Action = ["ds:*"], Resource = "*" },
-      { Effect = "Allow", Action = ["ec2:CreateNetworkInterface","ec2:DescribeNetworkInterfaces","ec2:DeleteNetworkInterface"], Resource = "*" },
-      { Effect = "Allow", Action = ["logs:CreateLogGroup","logs:CreateLogStream","logs:PutLogEvents"], Resource = "*" }
+      { Effect = "Allow", Action = ["ec2:CreateNetworkInterface", "ec2:DescribeNetworkInterfaces", "ec2:DeleteNetworkInterface"], Resource = "*" },
+      { Effect = "Allow", Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], Resource = "*" }
     ]
   })
 }
@@ -33,7 +40,14 @@ resource "aws_iam_role_policy" "provisioner" {
 resource "aws_security_group" "provisioner" {
   name_prefix = "${var.project_name}-provisioner-"
   vpc_id      = var.vpc_id
-  egress { from_port = 0; to_port = 0; protocol = "-1"; cidr_blocks = ["0.0.0.0/0"] }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   tags = { Name = "${var.project_name}-provisioner-sg" }
   lifecycle { create_before_destroy = true }
 }
